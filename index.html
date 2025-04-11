@@ -202,17 +202,17 @@
       const address = document.getElementById("address").value;
       const resultDiv = document.getElementById("result");
       
+      // Preprocess the address
+      const processedAddress = address
+        .replace(/(\d+)-(\d+)/, '$1$2') // Remove dashes between numbers (37-27 → 3727)
+        .replace(/\s+/g, ' ')           // Normalize spaces
+        .trim();                        // Remove leading/trailing spaces
+      
       resultDiv.innerHTML = '<span class="loading">Looking up...</span>';
       
       try {
-        // First get coordinates from Nominatim
-        const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`;
-        const geoResponse = await fetch(nominatimUrl, {
-          headers: {
-            'Accept': 'application/json',
-            'Referrer-Policy': 'no-referrer-when-downgrade'
-          }
-        });
+        const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(processedAddress)}&limit=1`;
+        const geoResponse = await fetch(nominatimUrl);
         const geoData = await geoResponse.json();
         
         if (geoData.length === 0) {
