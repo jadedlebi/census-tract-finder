@@ -204,65 +204,58 @@
       
       resultDiv.innerHTML = '<span class="loading">Looking up...</span>';
       
-      // Create a promise-based JSONP function
-      function jsonp(url) {
-        return new Promise((resolve, reject) => {
-          const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
-          window[callbackName] = function(data) {
-            delete window[callbackName];
-            document.head.removeChild(script);
-            resolve(data);
-          };
-
-          const script = document.createElement('script');
-          script.src = url + '&callback=' + callbackName;
-          script.onerror = reject;
-          document.head.appendChild(script);
-        });
-      }
-      
       try {
-        const encodedAddress = encodeURIComponent(address);
-        const censusUrl = `https://geocoding.geo.census.gov/geocoder/geographies/onelineaddress?address=${encodedAddress}&benchmark=Public_AR_Current&vintage=Current_Current&format=jsonp&layers=Census Tracts`;
+        // First get coordinates from Nominatim
+        const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`;
+        const geoResponse = await fetch(nominatimUrl, {
+          headers: {
+            'Accept': 'application/json',
+            'Referrer-Policy': 'no-referrer-when-downgrade'
+          }
+        });
+        const geoData = await geoResponse.json();
         
-        const data = await jsonp(censusUrl);
-        const result = data.result;
-        
-        if (!result || !result.addressMatches || result.addressMatches.length === 0) {
+        if (geoData.length === 0) {
           resultDiv.innerHTML = '<span class="error">Address not found. Please check the address and try again.</span>';
           return;
         }
 
-        const match = result.addressMatches[0];
-        const tract = match.geographies['Census Tracts'][0];
-        const tractId = tract.TRACT;
-        const state = tract.STATE;
-        const county = tract.COUNTY;
-        
-        // Format the full tract number (STATE + COUNTY + TRACT)
-        const fullTractId = `${state}${county}${tractId}`;
-        
-        resultDiv.innerHTML = `
-          <div class="tract-result">
-            <div class="address-line">
-              ${match.matchedAddress}
+        const lat = geoData[0].lat;
+        const lon = geoData[0].lon;
+
+        // Use a reliable CORS proxy
+        const proxyUrl = 'https://api.allorigins.win/raw?url=';
+        const fccUrl = `https://geo.fcc.gov/api/census/area?lat=${lat}&lon=${lon}&censusYear=2020&format=json`;
+        const tractResponse = await fetch(proxyUrl + encodeURIComponent(fccUrl));
+        const tractData = await tractResponse.json();
+
+        if (tractData.results && tractData.results.length > 0) {
+          const tract = tractData.results[0];
+          resultDiv.innerHTML = `
+            <div class="tract-result">
+              <div class="address-line">
+                ${geoData[0].display_name}
+              </div>
+              <div>
+                Census Tract: <span class="tract-number">${tract.block_fips.substring(0, 11)}</span>
+                <button class="copy-button" onclick="copyTract('${tract.block_fips.substring(0, 11)}')">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+                  </svg>
+                </button>
+              </div>
+              <div style="font-style: italic;">
+                Please copy your Census tract number and add it to the form.
+              </div>
             </div>
-            <div>
-              Census Tract: <span class="tract-number">${fullTractId}</span>
-              <button class="copy-button" onclick="copyTract('${fullTractId}')">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                  <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
-                </svg>
-              </button>
-            </div>
-            <div style="font-style: italic;">
-              Please copy your Census tract number and add it to the form.
-            </div>
-            <div class="secondary-info">
-              State: ${state}, County: ${county}, Tract: ${tractId}
-            </div>
-          </div>
-        `;
+          `;
+        } else {
+          resultDiv.innerHTML = `
+            <span class="error">Could not find Census tract for this location.</span><br>
+            <strong>Address:</strong> ${geoData[0].display_name}<br>
+            <strong>Coordinates:</strong> (${lat}, ${lon})<br>
+          `;
+        }
       } catch (error) {
         console.error('Error:', error);
         resultDiv.innerHTML = '<span class="error">Error connecting to the service. Please try again.</span>';
