@@ -225,7 +225,7 @@
 
         // Use a reliable CORS proxy
         const proxyUrl = 'https://api.allorigins.win/raw?url=';
-        const fccUrl = `https://geo.fcc.gov/api/census/area?lat=${lat}&lon=${lon}&censusYear=2020&format=json`;
+        const fccUrl = `https://geo.fcc.gov/api/census/area?lat=${lat}&lon=${lon}&censusYear=2010&format=json`;
         const tractResponse = await fetch(proxyUrl + encodeURIComponent(fccUrl));
         const tractData = await tractResponse.json();
 
