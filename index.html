@@ -290,7 +290,7 @@
               </div>
               <div>
                 Census Tract: <span class="tract-number">${tract.block_fips.substring(0, 11)}</span>
-                <button class="copy-button" onclick="copyTract('${tract.block_fips.substring(0, 11)}')">
+                <button class="copy-button" onclick="showTractNumber('${tract.block_fips.substring(0, 11)}')">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                     <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
                   </svg>
@@ -310,7 +310,7 @@
       }
     });
 
-    function copyTract(tractNumber) {
+    function showTractNumber(tractNumber) {
       const copyButton = document.querySelector('.copy-button');
       
       // Create a temporary text element
@@ -320,7 +320,7 @@
       tractDisplay.style.background = '#f0f9ff';
       tractDisplay.style.borderRadius = '4px';
       tractDisplay.innerHTML = `
-        <span style="color: #0369a1;">Please manually copy this number: </span>
+        <span style="color: #0369a1;">Click once to select, then copy: </span>
         <span style="font-weight: bold; user-select: all;">${tractNumber}</span>
       `;
       
