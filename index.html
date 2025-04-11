@@ -212,7 +212,12 @@
       
       try {
         const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(processedAddress)}&limit=1`;
-        const geoResponse = await fetch(nominatimUrl);
+        const geoResponse = await fetch(nominatimUrl, {
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'Census Tract Lookup Tool (educational use)'
+          }
+        });
         const geoData = await geoResponse.json();
         
         if (geoData.length === 0) {
@@ -223,24 +228,31 @@
         const lat = geoData[0].lat;
         const lon = geoData[0].lon;
 
-        // Function to try multiple proxies until one works
+        // Modified proxy handling
         async function fetchWithFallback(url) {
           const proxies = [
             {
-              url: 'https://api.allorigins.win/raw?url=',
-              options: {}
-            },
-            {
               url: 'https://corsproxy.io/?',
-              options: {}
-            },
-            {
-              url: 'https://proxy.cors.sh/',
               options: {
                 headers: {
-                  'x-cors-api-key': 'temp_f936f5f5f89a4b555589c0c326f54c33',
-                  'origin': window.location.origin,
-                  'x-requested-with': 'XMLHttpRequest'
+                  'Accept': 'application/json'
+                }
+              }
+            },
+            {
+              url: 'https://api.allorigins.win/raw?url=',
+              options: {
+                headers: {
+                  'Accept': 'application/json'
+                }
+              }
+            },
+            // Direct attempt with no proxy (might work when embedded)
+            {
+              url: '',
+              options: {
+                headers: {
+                  'Accept': 'application/json'
                 }
               }
             }
@@ -249,10 +261,16 @@
           let lastError;
           for (const proxy of proxies) {
             try {
-              const response = await fetch(proxy.url + encodeURIComponent(url), proxy.options);
+              const fullUrl = proxy.url + encodeURIComponent(url);
+              console.log(`Attempting fetch with: ${proxy.url}`);
+              const response = await fetch(proxy.url ? fullUrl : url, proxy.options);
+              if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+              }
               const data = await response.json();
               return data;
             } catch (error) {
+              console.log(`Proxy attempt failed: ${error.message}`);
               lastError = error;
               continue;
             }
