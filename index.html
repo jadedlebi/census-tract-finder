@@ -223,11 +223,29 @@
         const lat = geoData[0].lat;
         const lon = geoData[0].lon;
 
-        // Use a reliable CORS proxy
-        const proxyUrl = 'https://api.allorigins.win/raw?url=';
-        const fccUrl = `https://geo.fcc.gov/api/census/area?lat=${lat}&lon=${lon}&censusYear=2010&format=json`;
-        const tractResponse = await fetch(proxyUrl + encodeURIComponent(fccUrl));
-        const tractData = await tractResponse.json();
+        // Try multiple CORS proxies with fallback
+        async function tryProxies(url) {
+          const proxies = [
+            'https://corsproxy.io/?',
+            'https://api.allorigins.win/raw?url=',
+            'https://api.codetabs.com/v1/proxy?quest='
+          ];
+
+          for (const proxy of proxies) {
+            try {
+              const response = await fetch(proxy + encodeURIComponent(url));
+              const data = await response.json();
+              return data;
+            } catch (err) {
+              console.log(`Proxy ${proxy} failed, trying next...`);
+              continue;
+            }
+          }
+          throw new Error('All proxies failed');
+        }
+
+        const fccUrl = `https://geo.fcc.gov/api/census/area?lat=${lat}&lon=${lon}&censusYear=2020&format=json`;
+        const tractData = await tryProxies(fccUrl);
 
         if (tractData.results && tractData.results.length > 0) {
           const tract = tractData.results[0];
