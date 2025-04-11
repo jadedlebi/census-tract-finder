@@ -311,31 +311,45 @@
     });
 
     function copyTract(tractNumber) {
-      navigator.clipboard.writeText(tractNumber)
-        .then(() => {
-          const copyButton = document.querySelector('.copy-button');
-          copyButton.classList.add('copied');
-          
-          // Change the SVG to a checkmark
-          copyButton.innerHTML = `
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-              <path d="M20.285 2l-11.285 11.567-5.286-5.011-3.714 3.716 9 8.728 15-15.285z"/>
-            </svg>
-          `;
-          
-          setTimeout(() => {
-            copyButton.classList.remove('copied');
-            // Restore the original link icon
-            copyButton.innerHTML = `
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
-              </svg>
-            `;
-          }, 1500);
-        })
-        .catch(err => {
-          console.error('Failed to copy text: ', err);
-        });
+      const copyButton = document.querySelector('.copy-button');
+      
+      // Create a temporary text element
+      const tractDisplay = document.createElement('div');
+      tractDisplay.style.marginTop = '10px';
+      tractDisplay.style.padding = '8px';
+      tractDisplay.style.background = '#f0f9ff';
+      tractDisplay.style.borderRadius = '4px';
+      tractDisplay.innerHTML = `
+        <span style="color: #0369a1;">Please manually copy this number: </span>
+        <span style="font-weight: bold; user-select: all;">${tractNumber}</span>
+      `;
+      
+      // Find the parent element and insert the message
+      const tractResult = document.querySelector('.tract-result');
+      const existingMessage = tractResult.querySelector('.copy-message');
+      if (existingMessage) {
+        existingMessage.remove();
+      }
+      tractDisplay.className = 'copy-message';
+      tractResult.appendChild(tractDisplay);
+      
+      // Update button appearance temporarily
+      copyButton.classList.add('copied');
+      copyButton.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <path d="M20.285 2l-11.285 11.567-5.286-5.011-3.714 3.716 9 8.728 15-15.285z"/>
+        </svg>
+      `;
+      
+      // Reset button after delay
+      setTimeout(() => {
+        copyButton.classList.remove('copied');
+        copyButton.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+          </svg>
+        `;
+      }, 1500);
     }
   </script>
 </body>
