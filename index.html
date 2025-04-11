@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Find Your Census Tract</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background: #f5f5f5;
+      color: #333;
+      line-height: 1.6;
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      color: #2c3e50;
+      margin-bottom: 20px;
+      font-size: 28px;
+    }
+
+    p {
+      color: #666;
+      margin-bottom: 25px;
+    }
+
+    form {
+      margin-bottom: 30px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #2c3e50;
+      font-weight: 500;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 20px;
+      border: 2px solid #ddd;
+      border-radius: 6px;
+      font-size: 16px;
+      transition: border-color 0.3s ease;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #3498db;
+    }
+
+    button {
+      background: #3498db;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    button:hover {
+      background: #2980b9;
+    }
+
+    .tract-result {
+      background: #fff;
+      padding: 25px;
+      border-radius: 8px;
+      border-left: 5px solid #3498db;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      margin-top: 20px;
+    }
+
+    .tract-number {
+      font-size: 24px;
+      color: #2c3e50;
+      font-weight: 600;
+      margin: 10px 0;
+      padding: 10px;
+      background: #f8f9fa;
+      border-radius: 4px;
+      display: inline-block;
+    }
+
+    .copy-button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      margin-left: 5px;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .copy-button svg {
+      width: 16px;
+      height: 16px;
+      fill: #94a3b8;
+      transition: fill 0.2s ease;
+    }
+
+    .copy-button:hover {
+      background: #f1f5f9;
+    }
+
+    .copy-button:hover svg {
+      fill: #3498db;
+    }
+
+    .copy-button.copied {
+      background: #dcfce7;
+    }
+
+    .copy-button.copied svg {
+      fill: #22c55e;
+    }
+
+    .secondary-info {
+      color: #7f8c8d;
+      font-size: 14px;
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px solid #eee;
+    }
+
+    .address-line {
+      color: #34495e;
+      font-size: 16px;
+      margin-bottom: 15px;
+    }
+
+    .loading {
+      color: #666;
+      font-style: italic;
+    }
+
+    .error {
+      color: #e74c3c;
+      background: #fde8e7;
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding: 10px;
+      }
+      
+      .container {
+        padding: 20px;
+      }
+      
+      h2 {
+        font-size: 24px;
+      }
+      
+      input, button {
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Find Your Census Tract</h2>
+    <p>Enter your address to find your Census tract.</p>
+    
+    <form id="tractForm">
+      <label for="address">Enter your address:</label>
+      <input type="text" id="address" name="address" 
+             placeholder="123 Main St, City, State" required>
+      <button type="submit">Lookup Tract</button>
+    </form>
+
+    <div id="result"></div>
+  </div>
+
+  <script>
+    document.getElementById("tractForm").addEventListener("submit", async function(event) {
+      event.preventDefault();
+      const address = document.getElementById("address").value;
+      const resultDiv = document.getElementById("result");
+      
+      resultDiv.innerHTML = '<span class="loading">Looking up...</span>';
+      
+      try {
+        // First get coordinates from Nominatim
+        const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`;
+        const geoResponse = await fetch(nominatimUrl, {
+          headers: {
+            'Accept': 'application/json',
+            'Referrer-Policy': 'no-referrer-when-downgrade'
+          }
+        });
+        const geoData = await geoResponse.json();
+        
+        if (geoData.length === 0) {
+          resultDiv.innerHTML = '<span class="error">Address not found. Please check the address and try again.</span>';
+          return;
+        }
+
+        const lat = geoData[0].lat;
+        const lon = geoData[0].lon;
+
+        // Then get census tract from FCC API
+        const fccUrl = `https://geo.fcc.gov/api/census/area?lat=${lat}&lon=${lon}&censusYear=2020&format=json`;
+        const tractResponse = await fetch(fccUrl, {
+          headers: {
+            'Accept': 'application/json',
+            'Referrer-Policy': 'no-referrer-when-downgrade'
+          }
+        });
+        const tractData = await tractResponse.json();
+
+        if (tractData.results && tractData.results.length > 0) {
+          const tract = tractData.results[0];
+          resultDiv.innerHTML = `
+            <div class="tract-result">
+              <div class="address-line">
+                ${geoData[0].display_name}
+              </div>
+              <div>
+                Census Tract: <span class="tract-number">${tract.block_fips.substring(0, 11)}</span>
+                <button class="copy-button" onclick="copyTract('${tract.block_fips.substring(0, 11)}')">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+                  </svg>
+                </button>
+              </div>
+              <div style="font-style: italic;">
+                Please copy your Census tract number and add it to the form.
+              </div>
+            </div>
+          `;
+        } else {
+          resultDiv.innerHTML = `
+            <span class="error">Could not find Census tract for this location.</span><br>
+            <strong>Address:</strong> ${geoData[0].display_name}<br>
+            <strong>Coordinates:</strong> (${lat}, ${lon})<br>
+          `;
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        resultDiv.innerHTML = '<span class="error">Error connecting to the service. Please try again.</span>';
+      }
+    });
+
+    function copyTract(tractNumber) {
+      navigator.clipboard.writeText(tractNumber)
+        .then(() => {
+          const copyButton = document.querySelector('.copy-button');
+          copyButton.classList.add('copied');
+          
+          // Change the SVG to a checkmark
+          copyButton.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+              <path d="M20.285 2l-11.285 11.567-5.286-5.011-3.714 3.716 9 8.728 15-15.285z"/>
+            </svg>
+          `;
+          
+          setTimeout(() => {
+            copyButton.classList.remove('copied');
+            // Restore the original link icon
+            copyButton.innerHTML = `
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+              </svg>
+            `;
+          }, 1500);
+        })
+        .catch(err => {
+          console.error('Failed to copy text: ', err);
+        });
+    }
+  </script>
+</body>
+</html>
