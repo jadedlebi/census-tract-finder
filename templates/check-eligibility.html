@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ bank_name }} Program Eligibility Checker</title>
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css" rel="stylesheet" />
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background: #f5f5f5;
+      color: #333;
+      line-height: 1.6;
+      padding: 20px;
+      margin: 0 auto;
+    }
+
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+      max-width: 1000px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    h2 {
+      color: #2c3e50;
+      margin-bottom: 20px;
+      font-size: 28px;
+    }
+
+    p {
+      color: #666;
+      margin-bottom: 25px;
+    }
+
+    form {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #2c3e50;
+      font-weight: 500;
+    }
+
+    .search-row {
+      display: flex;
+      gap: 0;
+    }
+
+    .search-row input {
+      flex: 1;
+      padding: 12px;
+      border: 2px solid #ddd;
+      border-right: none;
+      border-radius: 6px 0 0 6px;
+      font-size: 16px;
+      transition: border-color 0.3s ease;
+      margin: 0;
+    }
+
+    .search-row input:focus {
+      outline: none;
+      border-color: #3498db;
+    }
+
+    .search-row button {
+      background: #3498db;
+      color: white;
+      padding: 12px 20px;
+      border: 2px solid #3498db;
+      border-radius: 0 6px 6px 0;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+      white-space: nowrap;
+    }
+
+    .search-row button:hover {
+      background: #2980b9;
+      border-color: #2980b9;
+    }
+
+    .tract-result {
+      background: #fff;
+      padding: 25px;
+      border-radius: 8px;
+      border-left: 5px solid #3498db;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      margin-top: 20px;
+    }
+
+    .tract-number {
+      font-size: 24px;
+      color: #2c3e50;
+      font-weight: 600;
+      margin: 10px 0;
+      padding: 10px;
+      background: #f8f9fa;
+      border-radius: 4px;
+      display: inline-block;
+    }
+
+    .copy-button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      margin-left: 5px;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .copy-button svg {
+      width: 16px;
+      height: 16px;
+      fill: #94a3b8;
+      transition: fill 0.2s ease;
+    }
+
+    .copy-button:hover {
+      background: #f1f5f9;
+    }
+
+    .copy-button:hover svg {
+      fill: #3498db;
+    }
+
+    .copy-button.copied {
+      background: #dcfce7;
+    }
+
+    .copy-button.copied svg {
+      fill: #22c55e;
+    }
+
+    .secondary-info {
+      color: #7f8c8d;
+      font-size: 14px;
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px solid #eee;
+    }
+
+    .address-line {
+      color: #34495e;
+      font-size: 16px;
+      margin-bottom: 15px;
+    }
+
+    .loading {
+      color: #666;
+      font-style: italic;
+    }
+
+    .error {
+      color: #e74c3c;
+      background: #fde8e7;
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+    }
+
+    #map {
+      width: 100%;
+      height: 500px;
+      border-radius: 8px;
+      margin-top: 20px;
+    }
+
+    .map-legend {
+      background: white;
+      padding: 8px 12px;
+      border-radius: 4px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+      font-size: 13px;
+      line-height: 1.4;
+      margin-bottom: 4px;
+    }
+
+    .map-legend .swatch {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    .map-loading {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #666;
+      font-style: italic;
+      margin-top: 10px;
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding: 10px;
+      }
+
+      .container {
+        padding: 20px;
+      }
+
+      h2 {
+        font-size: 24px;
+      }
+
+      .search-row input,
+      .search-row button {
+        font-size: 14px;
+      }
+
+      #map {
+        height: 350px;
+      }
+    }
+  </style>
+  {% if embed %}
+  <style>
+    body {
+      padding: 0;
+      background: transparent;
+    }
+    .container {
+      max-width: 100%;
+      border-radius: 0;
+      box-shadow: none;
+      padding: 16px 20px;
+    }
+    .ncrc-logo { display: none; }
+    h2 { font-size: 22px; margin-bottom: 12px; }
+    p { margin-bottom: 12px; font-size: 14px; }
+    form { margin-bottom: 12px; }
+    .search-row input { padding: 10px; font-size: 14px; }
+    .search-row button { padding: 10px 16px; font-size: 14px; }
+    .tract-result { padding: 16px; margin-top: 12px; }
+    .tract-number { font-size: 18px; padding: 6px 10px; }
+    #map { height: 350px; margin-top: 12px; border-radius: 6px; }
+    .map-loading { margin-top: 6px; font-size: 13px; }
+  </style>
+  {% endif %}
+</head>
+<body>
+  <div class="container">
+    <img class="ncrc-logo" src="{{ url_for('static', filename='ncrc-logo.png') }}"
+         style="position: absolute; top: 20px; right: 20px; width: 120px; height: auto;">
+    <h2>{{ bank_name }} Program Eligibility Checker</h2>
+    <p>Enter your address to check if your area is eligible for the program.</p>
+    <p style="font-style:italic;">Note: If there is an error, continue selecting the 'Check Eligibility' button until your tract number populates.</p>
+
+    <form id="tractForm">
+      <label for="address">Enter your address:</label>
+      <div class="search-row">
+        <input type="text" id="address" name="address"
+               placeholder="123 Main St, City, State" required>
+        <button type="submit">Check Eligibility</button>
+      </div>
+    </form>
+
+    <div id="result"></div>
+
+    <div id="map-status" class="map-loading">Loading eligible areas&hellip;</div>
+    <div id="map"></div>
+  </div>
+
+  <script>
+    const BANK_SLUG = "{{ bank_slug }}";
+    const TILESET_ID = "{{ tileset_id }}";
+    const SOURCE_LAYER = "{{ source_layer }}";
+
+    // ── Mapbox map setup ──────────────────────────────────────────
+    mapboxgl.accessToken = "{{ mapbox_token }}";
+
+    const map = new mapboxgl.Map({
+      container: 'map',
+      style: "{{ mapbox_style }}",
+      center: [-98.58, 39.83],
+      zoom: 3
+    });
+
+    map.addControl(new mapboxgl.NavigationControl(), 'top-left');
+
+    let currentMarker = null;
+    let eligibleTracts = [];
+
+    async function loadTractIds() {
+      try {
+        const resp = await fetch(`/api/tracts/${BANK_SLUG}`);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        eligibleTracts = await resp.json();
+        document.getElementById('map-status').style.display = 'none';
+      } catch (err) {
+        console.error('Failed to load tract IDs:', err);
+        document.getElementById('map-status').textContent =
+          'Could not load eligible tract list. Eligibility checking may be unavailable.';
+      }
+    }
+
+    map.on('load', () => {
+      map.addSource('eligible-tracts', {
+        type: 'vector',
+        url: `mapbox://${TILESET_ID}`
+      });
+
+      const firstLabelLayer = map.getStyle().layers.find(
+        layer => layer.type === 'symbol' && layer.layout?.['text-field']
+      );
+
+      map.addLayer({
+        id: 'eligible-tracts-fill',
+        type: 'fill',
+        source: 'eligible-tracts',
+        'source-layer': SOURCE_LAYER,
+        paint: {
+          'fill-color': '#2563eb',
+          'fill-opacity': 0.2,
+          'fill-antialias': false
+        }
+      }, firstLabelLayer?.id);
+
+      const legend = document.createElement('div');
+      legend.className = 'map-legend';
+      legend.innerHTML = '<span class="swatch" style="background:#2563eb;opacity:0.4;"></span>Eligible Areas';
+
+      const attribContainer = map.getContainer().querySelector('.mapboxgl-ctrl-bottom-right');
+      if (attribContainer) {
+        attribContainer.insertBefore(legend, attribContainer.firstChild);
+      }
+    });
+
+    loadTractIds();
+
+    function flyToResult(lon, lat) {
+      if (currentMarker) currentMarker.remove();
+
+      map.flyTo({ center: [lon, lat], zoom: 14, essential: true });
+
+      currentMarker = new mapboxgl.Marker({ color: '#e74c3c' })
+        .setLngLat([lon, lat])
+        .addTo(map);
+    }
+
+    // ── Geocoder: Primary (Census Bureau via server proxy) ──────
+    async function censusBureauLookup(address) {
+      try {
+        const response = await fetch(`/api/geocode?address=${encodeURIComponent(address)}`);
+        if (!response.ok) return null;
+
+        const data = await response.json();
+        const match = data?.result?.addressMatches?.[0];
+        if (!match) return null;
+
+        const tracts = match.geographies?.['Census Tracts'];
+        if (!tracts || tracts.length === 0) return null;
+
+        return {
+          tractNumber: tracts[0].GEOID,
+          lat: match.coordinates.y,
+          lon: match.coordinates.x,
+          displayAddress: match.matchedAddress
+        };
+      } catch (e) {
+        console.log('Census Bureau geocoder failed:', e.message);
+        return null;
+      }
+    }
+
+    // ── Geocoder: Fallback (Nominatim + FCC via server proxy) ───
+    async function fallbackLookup(address) {
+      const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`;
+      const geoResponse = await fetch(nominatimUrl, {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Census Tract Lookup Tool (educational use)'
+        }
+      });
+      const geoData = await geoResponse.json();
+      if (!geoData || geoData.length === 0) return null;
+
+      const lat = geoData[0].lat;
+      const lon = geoData[0].lon;
+
+      const response = await fetch(`/api/fcc?lat=${lat}&lon=${lon}`);
+      if (!response.ok) return null;
+      const tractData = await response.json();
+
+      if (!tractData?.results || tractData.results.length === 0) return null;
+
+      return {
+        tractNumber: tractData.results[0].block_fips.substring(0, 11),
+        lat: parseFloat(lat),
+        lon: parseFloat(lon),
+        displayAddress: geoData[0].display_name
+      };
+    }
+
+    // ── Form handler ──────────────────────────────────────────────
+    document.getElementById("tractForm").addEventListener("submit", async function(event) {
+      event.preventDefault();
+      const address = document.getElementById("address").value;
+      const resultDiv = document.getElementById("result");
+
+      const processedAddress = address
+        .replace(/(\d+)-(\d+)/, '$1$2')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      resultDiv.innerHTML = '<span class="loading">Looking up...</span>';
+
+      try {
+        let result = await censusBureauLookup(processedAddress);
+
+        if (!result) {
+          console.log('Falling back to Nominatim + FCC');
+          result = await fallbackLookup(processedAddress);
+        }
+
+        if (!result) {
+          resultDiv.innerHTML = '<span class="error">Address not found. Please check the address and try again.</span>';
+          return;
+        }
+
+        const { tractNumber, lat, lon, displayAddress } = result;
+        const isEligible = eligibleTracts.includes(tractNumber);
+
+        flyToResult(lon, lat);
+
+        resultDiv.innerHTML = `
+          <div class="tract-result">
+            <div class="address-line">
+              ${displayAddress}
+            </div>
+            <div>
+              Census Tract: <span class="tract-number">${tractNumber}</span>
+              <button class="copy-button" onclick="showTractNumber('${tractNumber}')">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                  <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+                </svg>
+              </button>
+            </div>
+            <div class="eligibility-message" style="margin-top: 15px; padding: 10px; border-radius: 5px; ${isEligible ? 'background-color: #dcfce7; color: #166534' : 'background-color: #fecaca; color: #991b1b'}">
+              ${isEligible
+                ? "Based on the address provided, your Census tract is within the geographically eligible area for the program."
+                : "Unfortunately, based on the address inputted, this area is not geographically eligible for the program."}
+            </div>
+          </div>
+        `;
+      } catch (error) {
+        console.error('Error:', error);
+        resultDiv.innerHTML = '<span class="error">Error connecting to the service. Please try again.</span>';
+      }
+    });
+
+    function showTractNumber(tractNumber) {
+      const copyButton = document.querySelector('.copy-button');
+
+      const tractDisplay = document.createElement('div');
+      tractDisplay.style.marginTop = '10px';
+      tractDisplay.style.padding = '8px';
+      tractDisplay.style.background = '#f0f9ff';
+      tractDisplay.style.borderRadius = '4px';
+      tractDisplay.innerHTML = `
+        <span style="color: #0369a1;">Click once to select, then copy: </span>
+        <span style="font-weight: bold; user-select: all;">${tractNumber}</span>
+      `;
+
+      const tractResult = document.querySelector('.tract-result');
+      const existingMessage = tractResult.querySelector('.copy-message');
+      if (existingMessage) existingMessage.remove();
+      tractDisplay.className = 'copy-message';
+      tractResult.appendChild(tractDisplay);
+
+      copyButton.classList.add('copied');
+      copyButton.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <path d="M20.285 2l-11.285 11.567-5.286-5.011-3.714 3.716 9 8.728 15-15.285z"/>
+        </svg>
+      `;
+
+      setTimeout(() => {
+        copyButton.classList.remove('copied');
+        copyButton.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+          </svg>
+        `;
+      }, 1500);
+    }
+  </script>
+</body>
+</html>

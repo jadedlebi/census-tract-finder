@@ -1,0 +1,7 @@
+boto3>=1.34.0
+flask>=3.0.0
+flask-compress>=1.14
+google-cloud-bigquery>=3.25.0
+gunicorn>=22.0.0
+python-dotenv>=1.0.0
+requests>=2.31.0
