@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>{{ bank_name }} Program Eligibility Checker</title>
+  <title>{{ bank_name }} Program</title>
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css" rel="stylesheet" />
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
   <style>
@@ -14,7 +14,7 @@
     }
 
     body {
-      background: #f5f5f5;
+      background: transparent;
       color: #333;
       line-height: 1.6;
       padding: 20px;
@@ -261,7 +261,7 @@
   <div class="container">
     <img class="ncrc-logo" src="{{ url_for('static', filename='ncrc-logo.png') }}"
          style="position: absolute; top: 20px; right: 20px; width: 120px; height: auto;">
-    <h2>{{ bank_name }} Program Eligibility Checker</h2>
+    <h2>{{ bank_name }} Program</h2>
     <p>Enter your address to check if your area is eligible for the program.</p>
     <p style="font-style:italic;">Note: If there is an error, continue selecting the 'Check Eligibility' button until your tract number populates.</p>
 
@@ -503,6 +503,15 @@
         `;
       }, 1500);
     }
+  </script>
+  <script>
+    (function () {
+      function sendHeight() {
+        parent.postMessage({ fefHeight: document.documentElement.scrollHeight }, "*");
+      }
+      new ResizeObserver(sendHeight).observe(document.body);
+      window.addEventListener("load", sendHeight);
+    })();
   </script>
 </body>
 </html>
